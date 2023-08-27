@@ -1,0 +1,166 @@
+- hosts: all
+  become: yes
+  become_user: root
+  gather_facts: yes
+  environment:
+    KUBECONFIG: "~/.kube/config"  # Location of the kube config path (root user)
+  tasks:
+    - name: Clone the repository
+      git:
+        repo: https://github.com/docker/getting-started-app.git
+        dest: ~/docker_files/getting-started-app
+
+    - name: Creating the Dockerfile in getting-started-app
+      copy:
+        dest: "~/docker_files/getting-started-app/Dockerfile"
+        content: |
+          # syntax=docker/dockerfile:1
+          FROM node:18-alpine
+          WORKDIR /app
+          COPY . .
+          RUN yarn install --production
+          CMD ["node","src/index.js"]
+          EXPOSE 3000
+
+    - name: Build Todo App Docker image
+      command: docker build -t todo-app-img .
+      args:
+        chdir: ~/docker_files/getting-started-app
+        
+- hosts: master
+  become: yes
+  become_user: k8sadmin
+  tasks:
+    - name: 1.1 Creating the MySQL1 - Create Storage Class YAML file
+      copy:
+        dest: "/home/k8sadmin/kube_files/mysql_1_create_storage_class.yml"
+        content: |
+          # storage_class.yml
+          kind: StorageClass
+          apiVersion: storage.k8s.io/v1
+          
+          metadata:
+            name: efs-sc
+          
+          provisioner: k8s.io/minikube-hostpath 
+          volumeBindingMode: Immediate
+          
+          parameters:
+           type: gp2 # This configures SSDs
+          
+          allowVolumeExpansion: true
+          reclaimPolicy: Retain
+          
+    - name: 1.2 Build the Storage Class
+      shell:  |
+        kubectl create ns mysql
+        kubectl apply -f mysql_1_create_storage_class.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
+
+    - name: 0.1 Creating the MySQL0 - create pv yaml
+      copy:
+        dest: "/home/k8sadmin/kube_files/create_pv.yml"
+        content: |
+          #mysql PV
+          
+          apiVersion: v1
+          kind: PersistentVolume
+          
+          metadata:
+            name: mysql-pv
+            labels:
+              type: local
+              
+          spec:
+            storageClassName: efs-sc
+            capacity:
+              storage: 5Gi
+            accessModes:
+              - ReadWriteMany
+            hostPath:
+              path: "/home/k8sadmin/mysql_files"
+
+    - name: 0.2 Create the PV
+      shell:
+        kubectl create -f create_pv.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
+
+    - name: 2.1 Creating the MySQL2 - Create PVC for MySQL YAML file
+      copy:
+        dest: "/home/k8sadmin/kube_files/mysql_2_create_pvc_for_mysql.yml"
+        content: |
+          # mysql-pvc.yml
+          
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          
+          metadata:
+            name: mysql-pvc
+          
+          spec:
+            accessModes:
+              - ReadWriteMany
+            storageClassName: efs-sc
+            resources:
+              requests:
+                storage: 5Gi
+          
+    - name: 2.2 Create PVC for MySQL
+      shell:
+        kubectl create -f mysql_2_create_pvc_for_mysql.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
+        
+    - name: 3.1 Creating the MySQL3 - Deploy MySQL App YAML file
+      copy:
+        dest: "/home/k8sadmin/kube_files/mysql_3_deploy_mysql_app.yml"
+        content: |
+          # mysql-deployment.yml
+          
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mysql
+            
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: mysql
+                
+            template:
+              metadata:
+                labels:
+                  app: mysql
+                  
+              spec:
+                containers:
+                - image: mysql:8.0
+                - name: mysql
+                  
+                  env:
+                  - name: MYSQL_ROOT_PASSWORD
+                    value: secret
+                  - name: MYSQL_DATABASE
+                    value: todos
+                    
+                  ports:
+                  - containerPort: 3306
+                    name: mysql
+                    
+                  volumeMounts:
+                  - name: mysql-persistent-storage
+                    mountPath: /var/lib/mysql
+                
+                volumes:
+                - name: mysql-persistent-storage
+                  persistentVolumeClaim:
+                    claimName: mysql-pvc
+
+    - name: 3.2 Deploy MySQL App
+      shell:
+        kubectl create -f mysql_3_deploy_mysql_app.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
