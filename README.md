@@ -1,6 +1,5 @@
-# Todo-app-Docker
 
-ANSIBLE PLAYBOOKS
+ ANSIBLE PLAYBOOKS
 	1. Kubernetes
 		1.1 set_up_users.yml
 		1.2 install_cri-o.yml
@@ -8,9 +7,9 @@ ANSIBLE PLAYBOOKS
 	2. Docker
 		2.1 install_docker.yml
 	3. Todo
-    3.1 todo.yml
-
-	l. Ansible install
+                3.1 todo.yml
+    
+    	l. Ansible install
 	- Add hostname in /etc/hosts
 	- sudo apt install ansible
 	- Create ssh keyes:
