@@ -1,14 +1,41 @@
 
 *** Link to application: https://brave-fog-06929.pktriot.net/
 
+ToDo app application provided by Docker, deployed in a single-node Kubernetes cluster and integrated with MySQL DB with persistent storage.
 
 
-ANSIBLE PLAYBOOKS
-1. To deploy single node Kubernetes cluster:
-  - kubernetes_install.yml
-2. To deploy the Todo app:
-  - todo-app-install.yml
+REPOSITORY FILES SUMMARY:
+	1. hosts
+ 	  - Ansible hosts file where the destination VM address, that will host the ToDo app, is configured
+	  - the file needs to be created in the same directory where the ansible playbooks are located
+    	2. kubernetes_install
+	  - Ansible playbook used to deploy the Kubernetes cluster 
+   	3. todo-app-install
+    	  - Ansible playbook used to deploy the ToDo app 
 
+
+SOLUTION DESCRIPTION:
+
+To deploy this aplication I used two Virtual Machines with Ubuntu 20.04 OS, placed in the same subnet. On VM1 I installed Ansible
+
+
+PREREQUISITES:
+- VM1:
+   - install Ansible:
+      - sudo apt install ansible
+   - edit /etc/hosts and add the IP address and hostname of VM2
+   - reboot VM1
+       - sudo reboot
+   - Generate SSH key and copy it on VM2, as root:
+       - su root
+       - ssh-keygen
+       - cd .ssh/
+       - ssh-copy-id root@<VM2_hostname>
+
+
+
+DEPLOYMENT STEPS:
+- 
 
 
     l. Ansible install
