@@ -1,7 +1,7 @@
-
+.
 *** Link to application: https://brave-fog-06929.pktriot.net/
-
-
+.
+.
 ANSIBLE PLAYBOOKS
 1. To deploy single node Kubernetes cluster:
   - kubernetes_install.yml
