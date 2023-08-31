@@ -1,0 +1,418 @@
+#MySQL: https://blog.knoldus.com/k8s-how-to-deploy-mysql-using-persistent-volume/
+
+# Docker part ------------------------------------------------------------------------
+# Install Docker
+- hosts: all
+  become: true
+  vars:
+    container_count: 4
+    default_container_name: docker
+    default_container_image: ubuntu
+    default_container_command: sleep 1d
+
+  tasks:
+    - name: Install required system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+        state: latest
+        update_cache: true
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+
+
+# Docker Image for Todo part ------------------------------------------------------------------------
+- hosts: all
+  become: yes
+  become_user: root
+  gather_facts: yes
+  environment:
+    KUBECONFIG: "/home/k8sadmin/.kube/config"  # Location of the kube config path (root user)
+  tasks:
+  
+#Clone the GIT repository
+    - name: Clone the repository
+      git:
+        repo: https://github.com/docker/getting-started-app.git
+        dest: /home/k8sadmin/docker_files/getting-started-app
+
+#Creating the Dockerfile in getting-started-app directory
+    - name: Creating the Dockerfile
+      copy:
+        dest: "/home/k8sadmin/docker_files/getting-started-app/Dockerfile"
+        content: |
+          # syntax=docker/dockerfile:1
+          FROM node:18-alpine
+          WORKDIR /app
+          COPY . .
+          RUN yarn install --production
+          CMD ["node","src/index.js"]
+          EXPOSE 3000
+
+#Build the Docker image
+    - name: Build Todo App Docker image
+      command: docker build -t todo-app-img .
+      args:
+        chdir: /home/k8sadmin/docker_files/getting-started-app
+        
+        
+# MySQL part------------------------------------------------------------------------
+- hosts: master
+  become: yes
+  become_user: root
+  tasks:
+
+#create the kube_files directory
+#    - name: Create the kube_files directory
+#      shell:
+#        mkdir kube_files
+#      args:
+#        chdir: /home/k8sadmin/
+
+# 1.1 Create the YAML file for Storage Class creation
+    - name: Create file mysql_1_create_storage_class.yml
+      file:
+        path: "/home/k8sadmin/kube_files/mysql_1_create_storage_class.yml"
+        state: "touch"
+         
+    - name: 1.1 Creating the MySQL1 - Create Storage Class YAML file
+      copy:
+        dest: "/home/k8sadmin/kube_files/mysql_1_create_storage_class.yml"
+        content: |
+          # storage_class.yml
+          kind: StorageClass
+          apiVersion: storage.k8s.io/v1
+          
+          metadata:
+            name: efs-sc
+          
+          provisioner: k8s.io/minikube-hostpath 
+          volumeBindingMode: Immediate
+          
+          parameters:
+           type: gp2 # This configures SSDs
+          
+          allowVolumeExpansion: true
+          reclaimPolicy: Retain
+
+# 1.2 Build the Storage Class         
+    - name: 1.2 Build the Storage Class
+      become: yes
+      become_user: k8sadmin
+      shell:  |
+        kubectl create ns mysql
+        kubectl apply -f mysql_1_create_storage_class.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
+
+# 2.1 Create the YAML file for the Persistent Volume
+    - name: Create file mysql_2_create_pv.yml
+      file:
+        path: "/home/k8sadmin/kube_files/mysql_2_create_pv.yml"
+        state: "touch"
+         
+    - name: 2.1 Creating the MySQL2 - create pv yaml
+      copy:
+        dest: "/home/k8sadmin/kube_files/mysql_2_create_pv.yml"
+        content: |
+          #mysql PV
+          
+          apiVersion: v1
+          kind: PersistentVolume
+          
+          metadata:
+            name: mysql-pv
+            labels:
+              type: local
+              
+          spec:
+            storageClassName: efs-sc
+            capacity:
+              storage: 5Gi
+            accessModes:
+              - ReadWriteMany
+            hostPath:
+              path: "/home/k8sadmin/mysql_files"
+
+# 2.2 Create the PV for MySQL
+    - name: 2.2 Create the PV
+      become: yes
+      become_user: k8sadmin
+      shell:
+        kubectl create -f mysql_2_create_pv.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
+
+# 3.1 Creating the YAML file for Persistent Volume Claim
+    - name: 3.1 Creating the MySQL3 - Create PVC for MySQL YAML file
+      copy:
+        dest: "/home/k8sadmin/kube_files/mysql_3_create_pvc_for_mysql.yml"
+        content: |
+          # mysql-pvc.yml
+          
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          
+          metadata:
+            name: mysql-pvc
+          
+          spec:
+            accessModes:
+              - ReadWriteMany
+            storageClassName: efs-sc
+            resources:
+              requests:
+                storage: 5Gi
+
+# 3.2 Create PVC for MySQL
+    - name: 3.2 Create PVC for MySQL
+      become: yes
+      become_user: k8sadmin
+      shell:
+        kubectl create -f mysql_3_create_pvc_for_mysql.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
+
+# 4.1 Create the YAML file for the deployment of MySQL app with Persistence
+    - name: 4.1 Creating the MySQL4 - Deploy MySQL App YAML file
+      copy:
+        dest: "/home/k8sadmin/kube_files/mysql_4_deploy_mysql_app.yml"
+        content: |
+          # mysql-deployment.yml
+          
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: mysql
+            
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: mysql
+                
+            template:
+              metadata:
+                labels:
+                  app: mysql
+                  
+              spec:
+                containers:
+                - image: mysql:8.0
+                  name: mysql
+                  
+                  env:
+                  - name: MYSQL_ROOT_PASSWORD
+                    value: secret
+                  - name: MYSQL_DATABASE
+                    value: todos
+                    
+                  ports:
+                  - containerPort: 3306
+                    name: mysql
+                    
+                  volumeMounts:
+                  - name: mysql-persistent-storage
+                    mountPath: /var/lib/mysql
+                
+                volumes:
+                - name: mysql-persistent-storage
+                  persistentVolumeClaim:
+                    claimName: mysql-pvc
+
+# 4.2 Deploy the MySQL app
+    - name: 4.2 Deploy MySQL App
+      become: yes
+      become_user: k8sadmin
+      shell:
+        kubectl create -f mysql_4_deploy_mysql_app.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
+
+# 5.1 Create the YAML file for MySQL service
+    - name: 5.1 Creating the MySQL5 - Create Mysql service YAML file
+      copy:
+        dest: "/home/k8sadmin/kube_files/mysql_5_create_mysql_service.yml"
+        content: |
+          #Create Mysql Service
+          
+          apiVersion: v1
+          kind: Service
+          
+          metadata:
+            name: mysql
+            
+          spec:
+            ports:
+            - port: 3306
+            selector:
+              app: mysql
+
+#5.2 Create Mysql service
+    - name: 5.2 Create Mysql service
+      become: yes
+      become_user: k8sadmin
+      shell:
+        kubectl apply -f mysql_5_create_mysql_service.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
+
+
+# Todo app deployment part ------------------------------------------------------------------------
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+  
+#Push the docker image of todo-app created previously to docker hub, in a public repository from my DockerHub account
+    - name: Push docker image to docker hub
+      shell:  |
+        docker login -u isildursa3320 -p Parola123.#
+        docker tag todo-app-img isildursa3320/todo-app-img
+        docker push isildursa3320/todo-app-img
+      args:
+        chdir: /home/k8sadmin/kube_files
+        
+#1.1 Create the YAML file for the ToDo-app & ToDo-app Service
+- hosts: master
+  become: yes
+  become_user: root
+  tasks:
+    - name: 1.1 Creating the Todo-app1 - Create the ToDo app YAML file
+      copy:
+        dest: "/home/k8sadmin/kube_files/todoapp_1_deploy_the_to_do_app.yml"
+        content: |
+            apiVersion: apps/v1
+            kind: Deployment
+            metadata:
+              name: bb-demo
+              namespace: mysql
+              
+            spec:
+              replicas: 1
+              selector:
+                matchLabels:
+                  bb: web
+              template:
+                metadata:
+                  labels:
+                    bb: web
+                    
+                spec:
+                  containers:
+                  - name: todo-app
+                    image: isildursa3320/todo-app-img:latest
+                    
+                    env:
+                    - name: MYSQL_HOST
+                      value: mysql
+                    - name: MYSQL_USER
+                      value: root
+                    - name: MYSQL_PASSWORD
+                      value: secret
+                    - name: MYSQL_DB
+                      value: todos
+                      
+                    ports:
+                    - containerPort: 3000
+            ---
+            apiVersion: v1
+            kind: Service
+            metadata:
+              name: todo-app
+              namespace: mysql
+            spec:
+              type: NodePort
+              selector:
+                bb: web
+              ports:
+              - port: 3000
+                targetPort: 3000
+                nodePort: 30001
+
+#1.2 Deploy the ToDo app
+    - name: 1.2 Deploy the ToDo app
+      become: yes
+      become_user: k8sadmin
+      shell:
+        kubectl apply -f todoapp_1_deploy_the_to_do_app.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
+        
+# Nginx part ------------------------------------------------------------------------
+# https://platform9.com/learn/v1.0/tutorials/nginix-controller-via-yaml#interested-in-more-content
+# Cofigure Ingress to access the Todo service
+
+- hosts: master
+  become: yes
+  become_user: root
+  tasks:
+  
+#1.1 Install NGINX as Ingress Controller
+    - name: 1.1 Install NGINX as Ingress Controller
+      become: yes
+      become_user: k8sadmin
+      shell:
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.0/deploy/static/provider/cloud/deploy.yaml
+      args:
+        chdir: /home/k8sadmin/kube_files
+  
+#1.2 Create the ingress service
+    - name: 1.2 Create the YAML for Ingress service
+      copy:
+        dest: "/home/k8sadmin/kube_files/ingress.yml"
+        content: |
+            apiVersion: networking.k8s.io/v1
+            kind: Ingress
+            metadata:
+              name: todo-ingress
+              namespace: mysql
+              annotations:
+                nginx.ingress.kubernetes.io/rewrite-target: /
+                kubernetes.io/ingress.class: "nginx"
+                
+            spec:
+              rules:
+              - host: todoapp.example.com
+                http:
+                  paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                      service:
+                        name: todo-app
+                        port:
+                          number: 80
+
+#1.3 Deploy the Ingress Service 
+    - name: 1.3 Deploy the Ingress service
+      become: yes
+      become_user: k8sadmin
+      shell:
+        kubectl apply -f ingress.yml -n mysql
+      args:
+        chdir: /home/k8sadmin/kube_files
