@@ -66,10 +66,10 @@ All steps are performet on VM1:
     	- sudo reboot
      
     4. Generate SSH key and copy it on VM2, as root:
-    	- su root
-     	- ssh-keygen
+        - su root
+        - ssh-keygen
         - cd .ssh/
-	- ssh-copy-id root@<VM2_hostname>
+        - ssh-copy-id root@<VM2_hostname>
 _____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 
 DEPLOYMENT STEPS:
