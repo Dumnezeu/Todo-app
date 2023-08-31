@@ -2,7 +2,7 @@
 *** Link to application: https://brave-fog-06929.pktriot.net/
 
 ToDo app application provided by Docker, deployed in a single-node Kubernetes cluster and integrated with MySQL DB with persistent storage.
-
+_____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 
 REPOSITORY FILES SUMMARY:
 1. hosts
@@ -12,7 +12,7 @@ REPOSITORY FILES SUMMARY:
   - Ansible playbook used to deploy the Kubernetes cluster
 3. todo-app-install
   - Ansible playbook used to deploy the ToDo app 
-																																		
+_____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 
 SOLUTION DESCRIPTION:
 
@@ -51,7 +51,7 @@ After the Deployment of ToDo app, the Ingress service was configured:
 - Ingress installation
     - NGINX was installed as Ingress Controller
     - "todo-ingress" Service was created, configured to use NGINX as Ingress Controller, and configured to present the "todo-app" Service over HTTP, on host todoapp.example.com, at the default "/" path
-
+_____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 
 PREREQUISITES:
 - VM1:
@@ -65,7 +65,7 @@ PREREQUISITES:
        - ssh-keygen
        - cd .ssh/
        - ssh-copy-id root@<VM2_hostname>
-
+_____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 
 
 DEPLOYMENT STEPS:
