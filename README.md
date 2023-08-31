@@ -5,13 +5,13 @@ ToDo app application provided by Docker, deployed in a single-node Kubernetes cl
 
 
 REPOSITORY FILES SUMMARY:
-	1. hosts
- 	  - Ansible hosts file where the destination VM address, that will host the ToDo app, is configured
-	  - the file needs to be created in the same directory where the ansible playbooks are located
-    	2. kubernetes_install
-	  - Ansible playbook used to deploy the Kubernetes cluster 
-   	3. todo-app-install
-    	  - Ansible playbook used to deploy the ToDo app 
+1. hosts
+  - Ansible hosts file where the destination VM address, that will host the ToDo app, is configured
+  - the file needs to be created in the same directory where the ansible playbooks are located
+2. kubernetes_install
+  - Ansible playbook used to deploy the Kubernetes cluster
+3. todo-app-install
+  - Ansible playbook used to deploy the ToDo app 
 
 
 SOLUTION DESCRIPTION:
