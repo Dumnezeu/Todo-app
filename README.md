@@ -30,7 +30,7 @@ All the dependencies and tools needed to deploy the ToDo app are deployed via th
 - Docker installation
     - the GIT repository that contains the app files was cloned locally
     - the Dockerfile was created, with instructions to create the image
-    - "todo-app-img" wsa built from the Dockerfile
+    - "todo-app-img" was built from the Dockerfile
     - "todo-app-img" was then pushed to the Docker hub, in a public repository
 
 In the next steps, the MySQL DB was deployed and configured.
