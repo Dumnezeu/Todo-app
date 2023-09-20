@@ -26,7 +26,7 @@ When Ansible was installed and VM1 configuration comlpeted, I deployed the Kuber
    - Calico was implemented as Network plugin
    - The master node was taint, in order to allow pods to run on it, without additional worker nodes
 
-All the and tools needed to deploy the ToDo app are deployed via the ansible playbook todo-app-install. Since the application is provided by Docker, I installed Docker also on VM2, to be able to create the image of the app.
+All the dependencies and tools needed to deploy the ToDo app are deployed via the ansible playbook todo-app-install. Since the application is provided by Docker, I installed Docker also on VM2, to be able to create the image of the app.
 - Docker installation
     - the GIT repository that contains the app files was cloned locally
     - the Dockerfile was created, with instructions to create the image
