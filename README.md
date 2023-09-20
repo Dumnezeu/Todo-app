@@ -35,7 +35,7 @@ All the dependencies and tools needed to deploy the ToDo app are deployed via th
 
 In the next steps, the MySQL DB was deployed and configured.
 - MySQL installation
-    - "mysql" Namespace was created, ehere both MySQL DB and ToDo app will be deployed
+    - "mysql" Namespace was created, where both MySQL DB and ToDo app will be deployed
     - "efs-sc" Storage Class that will accomodate the Persistance Volume was created
     - "mysql-pv" Persistance Volume was created
     - "mysql-pvc" Persistance Volume Claim was created, to be used by the MySQL DB
