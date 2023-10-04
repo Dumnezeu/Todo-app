@@ -1,6 +1,4 @@
 
-*** Link to application: https://dark-wood-90249.pktriot.net/
-
 ToDo app application provided by Docker, deployed in a single-node Kubernetes cluster and integrated with MySQL DB with persistent storage.
 _____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 
