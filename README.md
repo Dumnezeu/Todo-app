@@ -16,7 +16,7 @@ SOLUTION DESCRIPTION:
 
 To deploy this aplication I used two Virtual Machines with Ubuntu 20.04 OS, placed in the same subnet. On VM1 I installed Ansible and I configured the host file to include the IP address of VM2. After that, I generated an ssh key and copied it to VM2, to allow login via ssh without a password.
 
-When Ansible was installed and VM1 configuration comlpeted, I deployed the Kubernetes cluster on VM2 using the ansible playbook kubernetes_install.yml.
+When Ansible was installed and VM1 configuration completed, I deployed the Kubernetes cluster on VM2 using the ansible playbook kubernetes_install.yml.
 - Kubernetes installation
    - Kubernetes consists of a single-node k8s cluster
    - a new user (k8sadmin) was created to interact with k8s cluster
