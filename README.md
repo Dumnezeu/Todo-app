@@ -1,5 +1,5 @@
 
-ToDo app application provided by Docker, deployed in a single-node Kubernetes cluster and integrated with MySQL DB with persistent storage.
+ToDo app application provided by Docker, deployed with Ansible playbooks in a single-node Kubernetes cluster and integrated with MySQL DB with persistent storage.
 _____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
 
 REPOSITORY FILES SUMMARY:
