@@ -79,4 +79,21 @@ All steps are performet on VM1:
 
     2. Deploy ToDo app:
         - ansible-playbook -i hosts todo-app-install.yml
-	
+_____________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+
+IMPORTANT !
+
+After a VM reboot, it is possible that Kubernetes cluster to be no longer available, reporting the following error: ”The connection to the server :6443 was refused - did you specify the right host or port?”
+
+In order to fix it, run the following commands, starting as kubernetes admin user:
+
+	- sudo -i
+	- swapoff -a
+	- exit
+	- strace -eopenat kubectl version
+ 
+To check if the Kubernetes cluster is now available, run "kubectl get nodes".
+
+
+
